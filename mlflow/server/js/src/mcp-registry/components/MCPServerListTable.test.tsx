@@ -8,9 +8,15 @@ import { MCPServerListTable } from './MCPServerListTable';
 import { createMockMCPServer } from '../test-utils';
 
 const noop = () => {};
+const defaultPaginationProps = {
+  page: 1,
+  perPage: 25,
+  onSetPage: noop,
+};
 
 const renderTable = (props: Partial<React.ComponentProps<typeof MCPServerListTable>> = {}) => {
   const queryClient = new QueryClient();
+  const { paginationProps = defaultPaginationProps, ...tableProps } = props;
   return render(
     <IntlProvider locale="en">
       <TestRouter
@@ -18,13 +24,7 @@ const renderTable = (props: Partial<React.ComponentProps<typeof MCPServerListTab
           testRoute(
             <QueryClientProvider client={queryClient}>
               <DesignSystemProvider>
-                <MCPServerListTable
-                  hasNextPage={false}
-                  hasPreviousPage={false}
-                  onNextPage={noop}
-                  onPreviousPage={noop}
-                  {...props}
-                />
+                <MCPServerListTable {...tableProps} paginationProps={paginationProps} />
               </DesignSystemProvider>
             </QueryClientProvider>,
             '/',
@@ -95,25 +95,25 @@ describe('MCPServerListTable', () => {
 
   it('renders pagination controls', () => {
     const servers = [createMockMCPServer()];
-    renderTable({ servers, hasNextPage: true });
-    expect(screen.getByText('Next')).toBeInTheDocument();
-    expect(screen.getByText('Previous')).toBeInTheDocument();
+    renderTable({ servers });
+    expect(screen.getByRole('button', { name: 'Go to next page' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeInTheDocument();
   });
 
-  it('calls onNextPage when Next is clicked', () => {
-    const onNextPage = jest.fn();
+  it('calls onSetPage when next is clicked', () => {
+    const onSetPage = jest.fn();
     const servers = [createMockMCPServer()];
-    renderTable({ servers, hasNextPage: true, onNextPage });
-    screen.getByText('Next').click();
-    expect(onNextPage).toHaveBeenCalledTimes(1);
+    renderTable({ servers, paginationProps: { ...defaultPaginationProps, onSetPage } });
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    expect(onSetPage).toHaveBeenCalledWith(expect.anything(), 2, 25, 25, 50);
   });
 
-  it('calls onPreviousPage when Previous is clicked', () => {
-    const onPreviousPage = jest.fn();
+  it('calls onSetPage when previous is clicked', () => {
+    const onSetPage = jest.fn();
     const servers = [createMockMCPServer()];
-    renderTable({ servers, hasPreviousPage: true, onPreviousPage });
-    screen.getByText('Previous').click();
-    expect(onPreviousPage).toHaveBeenCalledTimes(1);
+    renderTable({ servers, paginationProps: { ...defaultPaginationProps, page: 2, onSetPage } });
+    fireEvent.click(screen.getByRole('button', { name: 'Go to previous page' }));
+    expect(onSetPage).toHaveBeenCalledWith(expect.anything(), 1, 25, 0, 25);
   });
 
   it('renders latest version column', () => {

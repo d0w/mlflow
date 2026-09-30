@@ -1,9 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useReactTable_unverifiedWithReact18 as useReactTable } from '@databricks/web-shared/react-table';
-import type { CursorPaginationProps } from '@databricks/design-system';
 import {
   Button,
-  CursorPagination,
   PencilIcon,
   Table,
   TableCell,
@@ -12,9 +10,10 @@ import {
   TableSkeletonRows,
   Tag,
   Tooltip,
-  Typography,
   useDesignSystemTheme,
 } from '@databricks/design-system';
+import { Pagination, PaginationVariant } from '@patternfly/react-core';
+import type { PaginationProps } from '@patternfly/react-core';
 import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { flexRender, getCoreRowModel } from '@tanstack/react-table';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -242,23 +241,15 @@ const useMCPServerTableColumns = () => {
 
 export const MCPServerListTable = ({
   servers,
-  hasNextPage,
-  hasPreviousPage,
   isLoading,
   isFiltered,
-  onNextPage,
-  onPreviousPage,
-  pageSizeSelect,
+  paginationProps,
   onCreateServer,
 }: {
   servers?: MCPServer[];
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
   isLoading?: boolean;
   isFiltered?: boolean;
-  onNextPage: () => void;
-  onPreviousPage: () => void;
-  pageSizeSelect?: CursorPaginationProps['pageSizeSelect'];
+  paginationProps: PaginationProps;
   onCreateServer?: () => void;
 }) => {
   const { theme } = useDesignSystemTheme();
@@ -293,14 +284,9 @@ export const MCPServerListTable = ({
       <Table
         scrollable
         pagination={
-          <CursorPagination
-            hasNextPage={hasNextPage}
-            hasPreviousPage={hasPreviousPage}
-            onNextPage={onNextPage}
-            onPreviousPage={onPreviousPage}
-            pageSizeSelect={pageSizeSelect}
-            componentId="mlflow.mcp_registry.table.pagination"
-          />
+          <div data-component-id="mlflow.mcp_registry.table.pagination">
+            <Pagination {...paginationProps} variant={PaginationVariant.bottom} isCompact />
+          </div>
         }
         empty={emptyState}
       >

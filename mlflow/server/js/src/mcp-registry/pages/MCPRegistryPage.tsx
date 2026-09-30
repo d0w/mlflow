@@ -27,6 +27,7 @@ import MCPRegistryRoutes from '../routes';
 import { flexColumnContainerStyles, headerIconStyles } from '../styles';
 import { MCPRegistryBetaTag } from '../components/MCPRegistryBetaTag';
 import { useDebounce } from 'use-debounce';
+import { useMCPRegistryPagination } from '../../odh/mcp-registry/useMCPRegistryPagination';
 
 type ViewMode = 'list' | 'grid';
 
@@ -62,6 +63,18 @@ const MCPRegistryPage = () => {
 
   const hasActiveFilters = Boolean(debouncedSearchFilter) || filterActive || filterHasEndpoints;
   const isServersEmpty = !isLoading && !isFetching && !error && !servers?.length && !hasActiveFilters;
+  const paginationProps = useMCPRegistryPagination({
+    servers,
+    hasNextPage,
+    hasPreviousPage,
+    onNextPage,
+    onPreviousPage,
+    pageSizeSelect,
+    isFetching,
+    searchFilter: debouncedSearchFilter,
+    filterActive,
+    filterHasEndpoints,
+  });
   const createButton = !isServersEmpty ? (
     <Button componentId="mlflow.mcp_registry.create_server_button" type="primary" onClick={openModal}>
       <FormattedMessage defaultMessage="Create MCP server" description="Button to create a new MCP server" />
@@ -153,23 +166,15 @@ const MCPRegistryPage = () => {
                 servers={servers}
                 isLoading={isLoading}
                 isFiltered={hasActiveFilters}
-                hasNextPage={hasNextPage}
-                hasPreviousPage={hasPreviousPage}
-                onNextPage={onNextPage}
-                onPreviousPage={onPreviousPage}
-                pageSizeSelect={pageSizeSelect}
+                paginationProps={paginationProps}
                 onCreateServer={openModal}
               />
             ) : (
               <MCPServerListTable
                 servers={servers}
-                hasNextPage={hasNextPage}
-                hasPreviousPage={hasPreviousPage}
                 isLoading={isLoading}
                 isFiltered={hasActiveFilters}
-                onNextPage={onNextPage}
-                onPreviousPage={onPreviousPage}
-                pageSizeSelect={pageSizeSelect}
+                paginationProps={paginationProps}
                 onCreateServer={openModal}
               />
             ))}

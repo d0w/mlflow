@@ -1,5 +1,6 @@
-import type { CursorPaginationProps } from '@databricks/design-system';
-import { CursorPagination, Spinner, useDesignSystemTheme } from '@databricks/design-system';
+import { Spinner, useDesignSystemTheme } from '@databricks/design-system';
+import { Pagination, PaginationVariant } from '@patternfly/react-core';
+import type { PaginationProps } from '@patternfly/react-core';
 import { FormattedMessage } from 'react-intl';
 
 import type { MCPServer } from '../types';
@@ -11,21 +12,13 @@ export const MCPServerCardGrid = ({
   servers,
   isLoading,
   isFiltered,
-  hasNextPage,
-  hasPreviousPage,
-  onNextPage,
-  onPreviousPage,
-  pageSizeSelect,
+  paginationProps,
   onCreateServer,
 }: {
   servers?: MCPServer[];
   isLoading?: boolean;
   isFiltered?: boolean;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-  onNextPage: () => void;
-  onPreviousPage: () => void;
-  pageSizeSelect?: CursorPaginationProps['pageSizeSelect'];
+  paginationProps: PaginationProps;
   onCreateServer?: () => void;
 }) => {
   const { theme } = useDesignSystemTheme();
@@ -69,6 +62,7 @@ export const MCPServerCardGrid = ({
         ))}
       </div>
       <div
+        data-component-id="mlflow.mcp_registry.grid.pagination"
         css={{
           flexShrink: 0,
           display: 'flex',
@@ -77,14 +71,7 @@ export const MCPServerCardGrid = ({
           paddingBottom: theme.spacing.sm,
         }}
       >
-        <CursorPagination
-          hasNextPage={hasNextPage}
-          hasPreviousPage={hasPreviousPage}
-          onNextPage={onNextPage}
-          onPreviousPage={onPreviousPage}
-          pageSizeSelect={pageSizeSelect}
-          componentId="mlflow.mcp_registry.grid.pagination"
-        />
+        <Pagination {...paginationProps} variant={PaginationVariant.bottom} isCompact />
       </div>
     </div>
   );

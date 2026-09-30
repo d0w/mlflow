@@ -1,5 +1,5 @@
 import { describe, it, expect, jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { DesignSystemProvider } from '@databricks/design-system';
 import { QueryClient, QueryClientProvider } from '@mlflow/mlflow/src/common/utils/reactQueryHooks';
@@ -10,14 +10,18 @@ import { createMockMCPServer } from '../test-utils';
 const noop = () => {};
 
 const defaultPaginationProps = {
-  hasNextPage: false,
-  hasPreviousPage: false,
-  onNextPage: noop,
-  onPreviousPage: noop,
+  page: 1,
+  perPage: 25,
+  onSetPage: noop,
 };
 
-const renderGrid = (props: React.ComponentProps<typeof MCPServerCardGrid>) => {
+const renderGrid = (
+  props: Omit<React.ComponentProps<typeof MCPServerCardGrid>, 'paginationProps'> & {
+    paginationProps?: React.ComponentProps<typeof MCPServerCardGrid>['paginationProps'];
+  },
+) => {
   const queryClient = new QueryClient();
+  const { paginationProps = defaultPaginationProps, ...gridProps } = props;
   return render(
     <IntlProvider locale="en">
       <TestRouter
@@ -25,7 +29,7 @@ const renderGrid = (props: React.ComponentProps<typeof MCPServerCardGrid>) => {
           testRoute(
             <QueryClientProvider client={queryClient}>
               <DesignSystemProvider>
-                <MCPServerCardGrid {...props} />
+                <MCPServerCardGrid {...gridProps} paginationProps={paginationProps} />
               </DesignSystemProvider>
             </QueryClientProvider>,
             '/',
@@ -38,17 +42,17 @@ const renderGrid = (props: React.ComponentProps<typeof MCPServerCardGrid>) => {
 
 describe('MCPServerCardGrid', () => {
   it('renders loading spinner when isLoading is true', () => {
-    renderGrid({ ...defaultPaginationProps, isLoading: true });
+    renderGrid({ paginationProps: defaultPaginationProps, isLoading: true });
     expect(screen.getByText('Loading servers...')).toBeInTheDocument();
   });
 
   it('renders "No servers found" when filtered and no results', () => {
-    renderGrid({ ...defaultPaginationProps, servers: [], isFiltered: true });
+    renderGrid({ paginationProps: defaultPaginationProps, servers: [], isFiltered: true });
     expect(screen.getByText('No servers found')).toBeInTheDocument();
   });
 
   it('renders empty state when no servers and not filtered', () => {
-    renderGrid({ ...defaultPaginationProps, servers: [] });
+    renderGrid({ paginationProps: defaultPaginationProps, servers: [] });
     expect(screen.getByText('Register and catalog MCP servers for your organization.')).toBeInTheDocument();
   });
 
@@ -58,47 +62,50 @@ describe('MCPServerCardGrid', () => {
       createMockMCPServer({ name: 'server-b' }),
       createMockMCPServer({ name: 'server-c' }),
     ];
-    renderGrid({ ...defaultPaginationProps, servers });
+    renderGrid({ paginationProps: defaultPaginationProps, servers });
     expect(screen.getByText('server-a')).toBeInTheDocument();
     expect(screen.getByText('server-b')).toBeInTheDocument();
     expect(screen.getByText('server-c')).toBeInTheDocument();
   });
 
   it('does not render loading spinner when servers are present', () => {
-    renderGrid({ ...defaultPaginationProps, servers: [createMockMCPServer()], isLoading: false });
+    renderGrid({ paginationProps: defaultPaginationProps, servers: [createMockMCPServer()], isLoading: false });
     expect(screen.queryByText('Loading servers...')).not.toBeInTheDocument();
   });
 
   it('renders pagination controls when servers are present', () => {
     const servers = [createMockMCPServer()];
-    renderGrid({ ...defaultPaginationProps, servers, hasNextPage: true });
-    expect(screen.getByText('Next')).toBeInTheDocument();
-    expect(screen.getByText('Previous')).toBeInTheDocument();
+    renderGrid({ paginationProps: defaultPaginationProps, servers });
+    expect(screen.getByRole('button', { name: 'Go to next page' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeInTheDocument();
   });
 
-  it('calls onNextPage when Next is clicked', () => {
-    const onNextPage = jest.fn();
+  it('calls onSetPage when next is clicked', () => {
+    const onSetPage = jest.fn();
     const servers = [createMockMCPServer()];
-    renderGrid({ ...defaultPaginationProps, servers, hasNextPage: true, onNextPage });
-    screen.getByText('Next').click();
-    expect(onNextPage).toHaveBeenCalledTimes(1);
+    renderGrid({ paginationProps: { ...defaultPaginationProps, onSetPage }, servers });
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    expect(onSetPage).toHaveBeenCalledWith(expect.anything(), 2, 25, 25, 50);
   });
 
-  it('calls onPreviousPage when Previous is clicked', () => {
-    const onPreviousPage = jest.fn();
+  it('calls onSetPage when previous is clicked', () => {
+    const onSetPage = jest.fn();
     const servers = [createMockMCPServer()];
-    renderGrid({ ...defaultPaginationProps, servers, hasPreviousPage: true, onPreviousPage });
-    screen.getByText('Previous').click();
-    expect(onPreviousPage).toHaveBeenCalledTimes(1);
+    renderGrid({ paginationProps: { ...defaultPaginationProps, page: 2, onSetPage }, servers });
+    fireEvent.click(screen.getByRole('button', { name: 'Go to previous page' }));
+    expect(onSetPage).toHaveBeenCalledWith(expect.anything(), 1, 25, 0, 25);
   });
 
   it('renders page size selector', () => {
     const servers = [createMockMCPServer()];
     renderGrid({
-      ...defaultPaginationProps,
+      paginationProps: {
+        ...defaultPaginationProps,
+        perPageOptions: [10, 25, 50].map((value) => ({ title: String(value), value })),
+      },
       servers,
-      pageSizeSelect: { options: [10, 25, 50], default: 25, onChange: noop },
     });
-    expect(screen.getByText('25 / page')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '1 - 25 of 0' }));
+    expect(screen.getByText('25 per page')).toBeInTheDocument();
   });
 });
