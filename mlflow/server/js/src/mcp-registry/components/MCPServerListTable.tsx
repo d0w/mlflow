@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useReactTable_unverifiedWithReact18 as useReactTable } from '@databricks/web-shared/react-table';
+import type { CursorPaginationProps } from '@databricks/design-system';
 import {
   Button,
+  CursorPagination,
   PencilIcon,
   Table,
   TableCell,
@@ -10,10 +12,9 @@ import {
   TableSkeletonRows,
   Tag,
   Tooltip,
+  Typography,
   useDesignSystemTheme,
 } from '@databricks/design-system';
-import { Pagination, PaginationVariant } from '@patternfly/react-core';
-import type { PaginationProps } from '@patternfly/react-core';
 import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { flexRender, getCoreRowModel } from '@tanstack/react-table';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -241,15 +242,23 @@ const useMCPServerTableColumns = () => {
 
 export const MCPServerListTable = ({
   servers,
+  hasNextPage,
+  hasPreviousPage,
   isLoading,
   isFiltered,
-  paginationProps,
+  onNextPage,
+  onPreviousPage,
+  pageSizeSelect,
   onCreateServer,
 }: {
   servers?: MCPServer[];
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
   isLoading?: boolean;
   isFiltered?: boolean;
-  paginationProps: PaginationProps;
+  onNextPage: () => void;
+  onPreviousPage: () => void;
+  pageSizeSelect?: CursorPaginationProps['pageSizeSelect'];
   onCreateServer?: () => void;
 }) => {
   const { theme } = useDesignSystemTheme();
@@ -284,9 +293,14 @@ export const MCPServerListTable = ({
       <Table
         scrollable
         pagination={
-          <div data-component-id="mlflow.mcp_registry.table.pagination">
-            <Pagination {...paginationProps} variant={PaginationVariant.bottom} isCompact />
-          </div>
+          <CursorPagination
+            hasNextPage={hasNextPage}
+            hasPreviousPage={hasPreviousPage}
+            onNextPage={onNextPage}
+            onPreviousPage={onPreviousPage}
+            pageSizeSelect={pageSizeSelect}
+            componentId="mlflow.mcp_registry.table.pagination"
+          />
         }
         empty={emptyState}
       >
